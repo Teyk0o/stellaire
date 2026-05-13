@@ -21,7 +21,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const verifyRes = await fetch(new URL('/api/profiles', request.url))
+  const verifyRes = await fetch(new URL('/api/profiles', `http://localhost:${process.env.PORT || 3000}`))
   const profiles = await verifyRes.json()
   if (!Array.isArray(profiles) || !profiles.some((p: { id: string }) => p.id === profileId)) {
     const response = NextResponse.redirect(new URL('/profils', request.url))
