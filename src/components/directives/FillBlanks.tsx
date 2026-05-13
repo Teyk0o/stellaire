@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useMemo, type ReactNode } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import katex from 'katex'
 import { Check, X } from 'lucide-react'
 import { useExerciseProgress } from '@/components/course/ProgressContext'
+import { useStableExerciseId } from '@/components/course/ExerciseIdContext'
 
 interface FillBlanksProps {
   children?: ReactNode
@@ -63,10 +64,15 @@ export function FillBlanks({ children }: FillBlanksProps) {
   const segments = useMemo(() => parseTemplate(rawText), [rawText])
   const blanks = useMemo(() => segments.filter(s => s.type === 'blank'), [segments])
 
-  const [values, setValues] = useState<string[]>(() => blanks.map(() => ''))
-  const [submitted, setSubmitted] = useState(false)
   const ctx = useExerciseProgress()
-  const id = useRef(`fb-${Math.random().toString(36).slice(2, 8)}`)
+  const id = useStableExerciseId('fb')
+
+  const existing = ctx?.getExerciseResult(id)
+  const [values, setValues] = useState<string[]>(() =>
+    existing?.answer ? JSON.parse(existing.answer) : blanks.map(() => '')
+  )
+  const [submitted, setSubmitted] = useState(() => !!existing?.answer)
+  const locked = existing?.correct === true
 
   function updateValue(i: number, val: string) {
     const next = [...values]
@@ -75,12 +81,12 @@ export function FillBlanks({ children }: FillBlanksProps) {
   }
 
   function submit() {
-    if (submitted) return
+    if (locked) return
     setSubmitted(true)
     const allCorrect = blanks.every((blank, i) =>
       values[i].trim().toLowerCase() === blank.value.trim().toLowerCase()
     )
-    ctx?.markExerciseComplete(id.current, allCorrect, 1)
+    ctx?.markExerciseComplete(id, allCorrect, 1, JSON.stringify(values))
   }
 
   let blankIndex = 0

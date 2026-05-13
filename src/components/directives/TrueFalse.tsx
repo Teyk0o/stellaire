@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Check, X } from 'lucide-react'
 import { useExerciseProgress } from '@/components/course/ProgressContext'
+import { useStableExerciseId } from '@/components/course/ExerciseIdContext'
 
 interface TrueFalseProps {
   answer: string
@@ -10,16 +11,21 @@ interface TrueFalseProps {
 }
 
 export function TrueFalse({ answer, children }: TrueFalseProps) {
-  const [selected, setSelected] = useState<boolean | null>(null)
   const correctAnswer = answer === 'true'
-  const answered = selected !== null
   const ctx = useExerciseProgress()
-  const id = useRef(`tf-${Math.random().toString(36).slice(2, 8)}`)
+  const id = useStableExerciseId('tf')
+
+  const existing = ctx?.getExerciseResult(id)
+  const [selected, setSelected] = useState<boolean | null>(() =>
+    existing?.answer !== undefined ? existing.answer === 'true' : null
+  )
+  const answered = selected !== null
+  const locked = existing?.correct === true
 
   function handleSelect(value: boolean) {
-    if (answered) return
+    if (locked) return
     setSelected(value)
-    ctx?.markExerciseComplete(id.current, value === correctAnswer, 1)
+    ctx?.markExerciseComplete(id, value === correctAnswer, 1, String(value))
   }
 
   return (
@@ -40,7 +46,7 @@ export function TrueFalse({ answer, children }: TrueFalseProps) {
             <button
               key={String(value)}
               onClick={() => handleSelect(value)}
-              disabled={answered}
+              disabled={locked}
               className={`flex items-center gap-2 px-5 py-3 rounded-lg border text-sm font-medium transition-colors cursor-pointer disabled:cursor-default ${style}`}
             >
               {answered && isCorrect && <Check size={16} className="text-success" />}

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import katex from 'katex'
 import { useExerciseProgress } from '@/components/course/ProgressContext'
+import { useStableExerciseId } from '@/components/course/ExerciseIdContext'
 
 interface QCMMultiProps {
   correct: string
@@ -21,13 +22,18 @@ function renderWithKatex(text: string): string {
 export function QCMMulti({ correct, options: rawOptions, children }: QCMMultiProps) {
   const options: string[] = typeof rawOptions === 'string' ? JSON.parse(rawOptions) : rawOptions
   const correctIndices: Set<number> = new Set(JSON.parse(correct))
-  const [selected, setSelected] = useState<Set<number>>(new Set())
-  const [submitted, setSubmitted] = useState(false)
   const ctx = useExerciseProgress()
-  const id = useRef(`qcm-m-${Math.random().toString(36).slice(2, 8)}`)
+  const id = useStableExerciseId('qcm-m')
+
+  const existing = ctx?.getExerciseResult(id)
+  const [selected, setSelected] = useState<Set<number>>(() =>
+    existing?.answer ? new Set(JSON.parse(existing.answer)) : new Set()
+  )
+  const [submitted, setSubmitted] = useState(() => !!existing?.answer)
+  const locked = existing?.correct === true
 
   function toggle(i: number) {
-    if (submitted) return
+    if (locked) return
     const next = new Set(selected)
     if (next.has(i)) next.delete(i)
     else next.add(i)
@@ -35,11 +41,11 @@ export function QCMMulti({ correct, options: rawOptions, children }: QCMMultiPro
   }
 
   function submit() {
-    if (submitted) return
+    if (locked) return
     setSubmitted(true)
     const isCorrect = selected.size === correctIndices.size &&
       [...selected].every(i => correctIndices.has(i))
-    ctx?.markExerciseComplete(id.current, isCorrect, 1)
+    ctx?.markExerciseComplete(id, isCorrect, 1, JSON.stringify([...selected]))
   }
 
   return (

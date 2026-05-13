@@ -1,5 +1,8 @@
+'use client'
+
 import type { ReactNode } from 'react'
 import { Rocket, AlertTriangle, Info, Lightbulb } from 'lucide-react'
+import { KatexLabel } from './KatexLabel'
 
 type CalloutVariant = 'info' | 'tip' | 'attention' | 'spatial'
 
@@ -49,9 +52,7 @@ function Callout({ variant, label, children }: CalloutProps) {
     <div className={`my-6 rounded-r-lg border-l-4 ${config.border} ${config.bg} p-5`}>
       <div className="flex items-center gap-2 mb-2">
         <Icon size={18} className="text-secondary shrink-0" />
-        <span className="text-sm font-semibold text-secondary">
-          {label || config.defaultLabel}
-        </span>
+        <KatexLabel text={label || config.defaultLabel} className="text-sm font-semibold text-secondary" />
       </div>
       <div className="prose">
         {children}

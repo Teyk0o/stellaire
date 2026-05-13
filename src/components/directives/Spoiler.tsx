@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
+import { KatexLabel } from './KatexLabel'
 
 interface SpoilerProps {
   label?: string
@@ -21,7 +22,7 @@ export function Spoiler({ label = 'Voir la réponse', children }: SpoilerProps) 
           size={16}
           className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
         />
-        <span className="text-sm font-medium">{label}</span>
+        <KatexLabel text={label} className="text-sm font-medium" />
       </button>
       {open && (
         <div className="px-4 pb-4 prose">

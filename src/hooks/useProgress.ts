@@ -10,7 +10,14 @@ const DEFAULT_PROGRESS: CourseProgress = {
   revisions: [],
 }
 
-export function useProgress(slug: string) {
+export function useProgress(slug: string): {
+  progress: CourseProgress
+  loading: boolean
+  update: (partial: Partial<CourseProgress>) => Promise<CourseProgress>
+  markExerciseComplete: (exerciseId: string, correct: boolean, attempts: number, answer?: string) => Promise<CourseProgress>
+  setStatus: (status: CourseStatus) => Promise<CourseProgress>
+  markOpened: () => Promise<CourseProgress | void>
+} {
   const [progress, setProgress] = useState<CourseProgress>(DEFAULT_PROGRESS)
   const [loading, setLoading] = useState(true)
 
@@ -33,10 +40,10 @@ export function useProgress(slug: string) {
     return updated
   }, [slug])
 
-  const markExerciseComplete = useCallback(async (exerciseId: string, correct: boolean, attempts: number) => {
+  const markExerciseComplete = useCallback(async (exerciseId: string, correct: boolean, attempts: number, answer?: string) => {
     return update({
       completedExercises: [exerciseId],
-      exerciseResults: { [exerciseId]: { correct, attempts } },
+      exerciseResults: { [exerciseId]: { correct, attempts, answer } },
       status: 'in-progress',
     })
   }, [update])

@@ -1,29 +1,26 @@
 'use client'
 
-import { useState, useMemo, useRef, type ReactNode } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
+import katex from 'katex'
 import { Check, X, GripVertical, ArrowUp, ArrowDown } from 'lucide-react'
 import { useExerciseProgress } from '@/components/course/ProgressContext'
+import { useStableExerciseId } from '@/components/course/ExerciseIdContext'
 
 interface OrderExerciseProps {
+  options?: string | string[]
   children?: ReactNode
 }
 
-function extractRawText(node: ReactNode): string {
-  if (typeof node === 'string') return node
-  if (typeof node === 'number') return String(node)
-  if (!node) return ''
-  if (Array.isArray(node)) return node.map(extractRawText).join('')
-  if (typeof node === 'object' && 'props' in node) {
-    return extractRawText((node as { props: { children?: ReactNode } }).props.children)
-  }
-  return ''
-}
-
-function parseItems(text: string): string[] {
+function renderKatex(text: string): string {
   return text
-    .split('\n')
-    .map(line => line.replace(/^[-*]\s*/, '').trim())
-    .filter(line => line.length > 0)
+    .replace(/\$\$([^$]+)\$\$/g, (_, math) => {
+      try { return katex.renderToString(math, { throwOnError: false, displayMode: true }) }
+      catch { return `$$${math}$$` }
+    })
+    .replace(/\$([^$]+)\$/g, (_, math) => {
+      try { return katex.renderToString(math, { throwOnError: false }) }
+      catch { return `$${math}$` }
+    })
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -35,58 +32,51 @@ function shuffle<T>(arr: T[]): T[] {
   return result
 }
 
-export function OrderExercise({ children }: OrderExerciseProps) {
-  const rawText = useMemo(() => extractRawText(children), [children])
-  const parts = useMemo(() => {
-    const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean)
-    const promptLines: string[] = []
-    const itemLines: string[] = []
-    let inList = false
-    for (const line of lines) {
-      if (line.startsWith('-') || line.startsWith('*')) {
-        inList = true
-        itemLines.push(line.replace(/^[-*]\s*/, ''))
-      } else if (!inList) {
-        promptLines.push(line)
-      }
-    }
-    return { prompt: promptLines.join(' '), correctOrder: itemLines }
-  }, [rawText])
+export function OrderExercise({ options: rawOptions, children }: OrderExerciseProps) {
+  const correctOrder: string[] = useMemo(() => {
+    if (!rawOptions) return []
+    return typeof rawOptions === 'string' ? JSON.parse(rawOptions) : rawOptions
+  }, [rawOptions])
 
-  const [items, setItems] = useState<string[]>(() => shuffle(parts.correctOrder))
-  const [submitted, setSubmitted] = useState(false)
   const ctx = useExerciseProgress()
-  const id = useRef(`ord-${Math.random().toString(36).slice(2, 8)}`)
+  const id = useStableExerciseId('ord')
 
-  const isCorrect = submitted && items.every((item, i) => item === parts.correctOrder[i])
+  const existing = ctx?.getExerciseResult(id)
+  const [items, setItems] = useState<string[]>(() =>
+    existing?.answer ? JSON.parse(existing.answer) : shuffle(correctOrder)
+  )
+  const [submitted, setSubmitted] = useState(() => !!existing?.answer)
+  const locked = existing?.correct === true
+
+  const isCorrect = submitted && items.every((item, i) => item === correctOrder[i])
 
   function moveUp(index: number) {
-    if (submitted || index === 0) return
+    if (locked || index === 0) return
     const next = [...items]
     ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
     setItems(next)
   }
 
   function moveDown(index: number) {
-    if (submitted || index === items.length - 1) return
+    if (locked || index === items.length - 1) return
     const next = [...items]
     ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
     setItems(next)
   }
 
   function submit() {
-    if (submitted) return
+    if (locked) return
     setSubmitted(true)
-    const correct = items.every((item, i) => item === parts.correctOrder[i])
-    ctx?.markExerciseComplete(id.current, correct, 1)
+    const correct = items.every((item, i) => item === correctOrder[i])
+    ctx?.markExerciseComplete(id, correct, 1, JSON.stringify(items))
   }
 
   return (
     <div className="my-6 rounded-lg border border-foreground/10 p-5">
-      {parts.prompt && <p className="prose mb-4">{parts.prompt}</p>}
+      {children && <div className="prose mb-4">{children}</div>}
       <div className="space-y-2">
         {items.map((item, i) => {
-          const correctPos = parts.correctOrder.indexOf(item)
+          const correctPos = correctOrder.indexOf(item)
           const inPlace = submitted && correctPos === i
 
           return (
@@ -100,7 +90,7 @@ export function OrderExercise({ children }: OrderExerciseProps) {
             >
               <GripVertical size={16} className="text-secondary/40 shrink-0" />
               <span className="text-sm font-medium text-secondary w-6 shrink-0">{i + 1}.</span>
-              <span className="flex-1 text-sm">{item}</span>
+              <span className="flex-1 text-sm" dangerouslySetInnerHTML={{ __html: renderKatex(item) }} />
               {!submitted && (
                 <div className="flex flex-col gap-0.5 shrink-0">
                   <button
@@ -142,8 +132,8 @@ export function OrderExercise({ children }: OrderExerciseProps) {
         <div className="mt-4 p-4 rounded-lg bg-foreground/3">
           <p className="text-sm font-medium text-secondary mb-2">Ordre correct :</p>
           <ol className="text-sm text-secondary space-y-1 list-decimal list-inside">
-            {parts.correctOrder.map((item, i) => (
-              <li key={i}>{item}</li>
+            {correctOrder.map((item, i) => (
+              <li key={i} dangerouslySetInnerHTML={{ __html: renderKatex(item) }} />
             ))}
           </ol>
         </div>

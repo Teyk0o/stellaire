@@ -47,6 +47,7 @@ export function getDb(): Database.Database {
       exercise_id TEXT NOT NULL,
       correct INTEGER NOT NULL DEFAULT 0,
       attempts INTEGER NOT NULL DEFAULT 0,
+      answer TEXT,
       last_seen TEXT,
       interval_days INTEGER,
       ease_factor REAL,
@@ -88,6 +89,12 @@ export function getDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_revisions_profile ON revisions(profile_id, slug);
     CREATE INDEX IF NOT EXISTS idx_exams_profile ON exams(profile_id);
   `)
+
+  // Migrations
+  const columns = db.prepare("PRAGMA table_info(exercise_results)").all() as Array<{ name: string }>
+  if (!columns.some(c => c.name === 'answer')) {
+    db.exec("ALTER TABLE exercise_results ADD COLUMN answer TEXT")
+  }
 
   return db
 }
