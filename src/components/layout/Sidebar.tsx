@@ -38,6 +38,7 @@ export function Sidebar({ courses }: SidebarProps) {
   const pathname = usePathname()
 
   useEffect(() => {
+    setOpen(false)
     fetch('/api/progress').then(r => r.json()).then(setProgress).catch(() => {})
     fetch('/api/profiles').then(r => r.json()).then((profiles: ProfileEntry[]) => {
       const cookieId = document.cookie.split('; ').find(c => c.startsWith('stellaire-profile='))?.split('=')[1]
@@ -146,7 +147,8 @@ export function Sidebar({ courses }: SidebarProps) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-40 lg:hidden bg-background rounded-lg border border-foreground/10 p-2 shadow-sm cursor-pointer print-hidden"
+        className="fixed z-40 lg:hidden bg-background rounded-lg border border-foreground/10 p-2 shadow-sm cursor-pointer print-hidden"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1rem)', left: 'calc(env(safe-area-inset-left, 0px) + 1rem)' }}
       >
         <Menu size={20} />
       </button>
@@ -158,7 +160,7 @@ export function Sidebar({ courses }: SidebarProps) {
         />
       )}
 
-      <aside className={`
+      <aside style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} className={`
         fixed inset-y-0 left-0 z-50 w-[300px] bg-sidebar border-r border-foreground/5
         transform transition-transform duration-200 ease-in-out
         lg:translate-x-0 lg:shrink-0

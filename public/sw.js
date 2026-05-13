@@ -1,7 +1,6 @@
-const CACHE_NAME = 'stellaire-v1'
+const CACHE_NAME = 'stellaire-v2'
 
 const PRECACHE = [
-  '/',
   '/manifest.json',
   '/icon.png',
   '/web-app-manifest-192x192.png',
@@ -28,13 +27,18 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.method !== 'GET') return
 
+  // Never intercept navigation requests (page loads) — let the server handle redirects
+  if (event.request.mode === 'navigate') return
+
   // API routes: network-first
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone))
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone))
+          }
           return response
         })
         .catch(() => caches.match(event.request))
@@ -42,17 +46,19 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Course pages and static assets: cache-first
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached
-      return fetch(event.request).then(response => {
-        if (response.ok && (url.pathname.startsWith('/cours/') || url.pathname.startsWith('/_next/'))) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone))
-        }
-        return response
+  // Static assets: cache-first
+  if (url.pathname.startsWith('/_next/') || url.pathname.match(/\.(png|svg|ico|woff2?)$/)) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached
+        return fetch(event.request).then(response => {
+          if (response.ok) {
+            const clone = response.clone()
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone))
+          }
+          return response
+        })
       })
-    })
-  )
+    )
+  }
 })
