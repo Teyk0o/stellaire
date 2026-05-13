@@ -1,16 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const profileId = request.cookies.get('stellaire-profile')?.value
   const pathname = request.nextUrl.pathname
 
-  const publicPaths = ['/profils', '/api/profiles', '/_next', '/icon', '/web-app', '/manifest.json', '/sw.js', '/apple-icon.png', '/favicon.ico']
-  if (publicPaths.some(p => pathname.startsWith(p))) {
+  if (pathname === '/profils' || pathname.startsWith('/api/profiles')) {
+    return NextResponse.next()
+  }
+
+  if (pathname.startsWith('/_next') || pathname.startsWith('/icon') || pathname.startsWith('/web-app') ||
+      pathname === '/manifest.json' || pathname === '/sw.js' || pathname === '/apple-icon.png' || pathname === '/favicon.ico') {
     return NextResponse.next()
   }
 
   if (!profileId) {
     return NextResponse.redirect(new URL('/profils', request.url))
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next()
+  }
+
+  const verifyRes = await fetch(new URL('/api/profiles', request.url))
+  const profiles = await verifyRes.json()
+  if (!Array.isArray(profiles) || !profiles.some((p: { id: string }) => p.id === profileId)) {
+    const response = NextResponse.redirect(new URL('/profils', request.url))
+    response.cookies.delete('stellaire-profile')
+    return response
   }
 
   return NextResponse.next()
