@@ -1,0 +1,10 @@
+services:
+  stellaire:
+    build: .
+    container_name: stellaire
+    restart: unless-stopped
+    ports:
+      - "${STELLAIRE_PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+      - ./content:/app/content
