@@ -19,6 +19,8 @@ export async function getAllCourses(): Promise<CourseMeta[]> {
   const courses: CourseMeta[] = []
   const slugs = new Set<string>()
 
+  if (!fs.existsSync(CONTENT_DIR)) return courses
+
   const phases = fs.readdirSync(CONTENT_DIR).filter(d =>
     d.startsWith('phase-') && fs.statSync(path.join(CONTENT_DIR, d)).isDirectory()
   )

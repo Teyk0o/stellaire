@@ -16,10 +16,8 @@ const subjectLabels: Record<Subject, string> = {
   chemistry: 'Chimie',
 }
 
-export async function generateStaticParams() {
-  const courses = await getAllCourses()
-  return courses.map(c => ({ slug: c.slug }))
-}
+export const dynamicParams = true
+export const dynamic = 'force-dynamic'
 
 function CourseHeader({ meta }: { meta: CourseMeta }) {
   return (

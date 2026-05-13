@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.claude
+data
+content
+CLAUDE.md
+AGENTS.md
+*.md
+!README.md
+!DEPLOY.md

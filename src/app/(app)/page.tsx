@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 import { getCourseGroups } from '@/lib/courses'
