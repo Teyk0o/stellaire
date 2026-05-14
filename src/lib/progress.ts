@@ -163,13 +163,14 @@ export function readCourseProgress(profileId: string, slug: string): CourseProgr
   } : defaultProgress()
 
   const exercises = db.prepare('SELECT * FROM exercise_results WHERE profile_id = ? AND slug = ?').all(profileId, slug) as Array<{
-    exercise_id: string; correct: number; attempts: number; last_seen: string | null; interval_days: number | null; ease_factor: number | null; next_due: string | null
+    exercise_id: string; correct: number; attempts: number; answer: string | null; last_seen: string | null; interval_days: number | null; ease_factor: number | null; next_due: string | null
   }>
 
   for (const ex of exercises) {
     cp.exerciseResults[ex.exercise_id] = {
       correct: !!ex.correct,
       attempts: ex.attempts,
+      answer: ex.answer || undefined,
       lastSeen: ex.last_seen || undefined,
       interval: ex.interval_days || undefined,
       easeFactor: ex.ease_factor || undefined,
@@ -209,13 +210,13 @@ export function updateCourseProgress(
 
   if (update.exerciseResults) {
     const stmt = db.prepare(`INSERT OR REPLACE INTO exercise_results
-      (profile_id, slug, exercise_id, correct, attempts, last_seen, interval_days, ease_factor, next_due)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      (profile_id, slug, exercise_id, correct, attempts, answer, last_seen, interval_days, ease_factor, next_due)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 
     for (const [exId, result] of Object.entries(update.exerciseResults)) {
       const existing = current.exerciseResults[exId]
       const merged = { ...existing, ...result }
-      stmt.run(profileId, slug, exId, merged.correct ? 1 : 0, merged.attempts,
+      stmt.run(profileId, slug, exId, merged.correct ? 1 : 0, merged.attempts, merged.answer || null,
         merged.lastSeen || null, merged.interval || null, merged.easeFactor || null, merged.nextDue || null)
     }
   }
@@ -236,10 +237,10 @@ function importCourseProgress(profileId: string, slug: string, cp: CourseProgres
     VALUES (?, ?, ?, ?, ?, ?)`).run(profileId, slug, cp.status, cp.lastOpened || null, cp.completedAt || null, cp.nextRevision || null)
 
   const stmt = db.prepare(`INSERT OR REPLACE INTO exercise_results
-    (profile_id, slug, exercise_id, correct, attempts, last_seen, interval_days, ease_factor, next_due)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    (profile_id, slug, exercise_id, correct, attempts, answer, last_seen, interval_days, ease_factor, next_due)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
   for (const [exId, r] of Object.entries(cp.exerciseResults || {})) {
-    stmt.run(profileId, slug, exId, r.correct ? 1 : 0, r.attempts, r.lastSeen || null, r.interval || null, r.easeFactor || null, r.nextDue || null)
+    stmt.run(profileId, slug, exId, r.correct ? 1 : 0, r.attempts, r.answer || null, r.lastSeen || null, r.interval || null, r.easeFactor || null, r.nextDue || null)
   }
 
   const revStmt = db.prepare('INSERT INTO revisions (profile_id, slug, date, score, passed) VALUES (?, ?, ?, ?, ?)')

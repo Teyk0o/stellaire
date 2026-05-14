@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, type ReactNode, type FormEvent } from 'react'
+import { useState, type ReactNode, type FormEvent } from 'react'
 import { Check, X } from 'lucide-react'
 import { useExerciseProgress } from '@/components/course/ProgressContext'
+import { useStableExerciseId } from '@/components/course/ExerciseIdContext'
 
 interface NumericInputProps {
   answer: string
@@ -11,14 +12,18 @@ interface NumericInputProps {
 }
 
 export function NumericInput({ answer, tolerance = '0', children }: NumericInputProps) {
-  const [value, setValue] = useState('')
-  const [result, setResult] = useState<'correct' | 'incorrect' | null>(null)
-  const [attempts, setAttempts] = useState(0)
-  const ctx = useExerciseProgress()
-  const id = useRef(`num-${Math.random().toString(36).slice(2, 8)}`)
-
   const expected = parseFloat(answer)
   const tol = parseFloat(tolerance)
+  const ctx = useExerciseProgress()
+  const id = useStableExerciseId('num')
+
+  const existing = ctx?.getExerciseResult(id)
+  const [value, setValue] = useState(() => existing?.answer ?? '')
+  const [result, setResult] = useState<'correct' | 'incorrect' | null>(() => {
+    if (!existing?.answer) return null
+    return existing.correct ? 'correct' : 'incorrect'
+  })
+  const [attempts, setAttempts] = useState(() => existing?.attempts ?? 0)
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -28,9 +33,7 @@ export function NumericInput({ answer, tolerance = '0', children }: NumericInput
     setAttempts(newAttempts)
     const correct = Math.abs(parsed - expected) <= tol
     setResult(correct ? 'correct' : 'incorrect')
-    if (correct) {
-      ctx?.markExerciseComplete(id.current, true, newAttempts)
-    }
+    ctx?.markExerciseComplete(id, correct, newAttempts, value)
   }
 
   return (
@@ -41,7 +44,7 @@ export function NumericInput({ answer, tolerance = '0', children }: NumericInput
           type="text"
           inputMode="decimal"
           value={value}
-          onChange={e => { setValue(e.target.value); setResult(null) }}
+          onChange={e => { setValue(e.target.value); if (result !== 'correct') setResult(null) }}
           placeholder="Ta réponse"
           disabled={result === 'correct'}
           className={`px-4 py-2 rounded-lg border text-base w-40 outline-none transition-colors ${

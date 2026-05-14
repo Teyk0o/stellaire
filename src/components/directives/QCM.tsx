@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import katex from 'katex'
 import { useExerciseProgress } from '@/components/course/ProgressContext'
+import { useStableExerciseId } from '@/components/course/ExerciseIdContext'
 
 interface QCMProps {
   correct: string
@@ -22,12 +23,17 @@ function renderWithKatex(text: string): string {
 
 export function QCM({ correct, options: rawOptions, children }: QCMProps) {
   const options: string[] = typeof rawOptions === 'string' ? JSON.parse(rawOptions) : rawOptions
-  const [selected, setSelected] = useState<number | null>(null)
-  const [attempts, setAttempts] = useState(0)
   const correctIndex = parseInt(correct, 10)
-  const answered = selected !== null
   const ctx = useExerciseProgress()
-  const id = useRef(`qcm-${Math.random().toString(36).slice(2, 8)}`)
+  const id = useStableExerciseId('qcm')
+
+  const existing = ctx?.getExerciseResult(id)
+  const [selected, setSelected] = useState<number | null>(() =>
+    existing?.answer !== undefined ? parseInt(existing.answer, 10) : null
+  )
+  const [attempts, setAttempts] = useState(() => existing?.attempts ?? 0)
+  const answered = selected !== null
+  const locked = existing?.correct === true
 
   return (
     <div className="my-6 rounded-lg border border-foreground/10 p-5">
@@ -47,13 +53,13 @@ export function QCM({ correct, options: rawOptions, children }: QCMProps) {
             <button
               key={i}
               onClick={() => {
-                if (answered) return
+                if (locked) return
                 const newAttempts = attempts + 1
                 setAttempts(newAttempts)
                 setSelected(i)
-                ctx?.markExerciseComplete(id.current, i === correctIndex, newAttempts)
+                ctx?.markExerciseComplete(id, i === correctIndex, newAttempts, String(i))
               }}
-              disabled={answered}
+              disabled={locked}
               className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg border text-left transition-colors cursor-pointer disabled:cursor-default ${style}`}
             >
               <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${

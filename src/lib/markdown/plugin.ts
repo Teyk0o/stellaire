@@ -32,7 +32,7 @@ const DIRECTIVE_COMPONENTS: Record<string, string> = {
   recap: 'RecapCard',
 }
 
-const EXERCISE_DIRECTIVES = new Set(['qcm', 'qcm-multi', 'true-false'])
+const EXERCISE_DIRECTIVES = new Set(['qcm', 'qcm-multi', 'true-false', 'order'])
 
 function extractTextFromNode(node: { type: string; value?: string; children?: Array<{ type: string; value?: string; children?: unknown[] }> }): string {
   if (node.type === 'text') return node.value || ''

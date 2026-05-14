@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import remarkDirective from 'remark-directive'
+import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import { getCourse, getAllCourses } from '@/lib/courses'
@@ -8,6 +9,7 @@ import { remarkDirectiveToMdx } from '@/lib/markdown/plugin'
 import { directiveComponents } from '@/lib/markdown/components'
 import { ContentShell } from '@/components/layout/ContentShell'
 import { ProgressProvider } from '@/components/course/ProgressContext'
+import { CourseCompletion } from '@/components/course/CourseCompletion'
 import type { CourseMeta, Subject } from '@/types/course'
 
 const subjectLabels: Record<Subject, string> = {
@@ -45,6 +47,15 @@ export default async function CoursePage({
 
   if (!course) notFound()
 
+  const allCourses = await getAllCourses()
+  const sameCourses = allCourses
+    .filter(c => c.phase === course.meta.phase && c.subject === course.meta.subject && !c.tags.includes('demo'))
+    .sort((a, b) => a.order - b.order)
+  const currentIndex = sameCourses.findIndex(c => c.slug === slug)
+  const nextCourse = currentIndex >= 0 && currentIndex < sameCourses.length - 1
+    ? sameCourses[currentIndex + 1]
+    : null
+
   return (
     <ContentShell>
       <CourseHeader meta={course.meta} />
@@ -54,13 +65,14 @@ export default async function CoursePage({
             source={course.content}
             options={{
               mdxOptions: {
-                remarkPlugins: [remarkDirective, remarkDirectiveToMdx, remarkMath],
+                remarkPlugins: [remarkGfm, remarkDirective, remarkDirectiveToMdx, remarkMath],
                 rehypePlugins: [rehypeKatex],
               },
             }}
             components={directiveComponents}
           />
         </article>
+        <CourseCompletion slug={slug} nextCourse={nextCourse} />
       </ProgressProvider>
     </ContentShell>
   )

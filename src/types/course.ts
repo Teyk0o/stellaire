@@ -19,6 +19,7 @@ export interface CourseData {
 export interface ExerciseResult {
   correct: boolean
   attempts: number
+  answer?: string
   lastSeen?: string
   interval?: number
   easeFactor?: number

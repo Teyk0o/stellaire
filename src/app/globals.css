@@ -78,6 +78,35 @@ body {
   font-weight: 600;
 }
 
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9em;
+}
+
+.prose th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid #e5e5e5;
+  color: var(--color-secondary);
+  font-size: 0.85em;
+}
+
+.prose td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.prose tr:last-child td {
+  border-bottom: none;
+}
+
+.prose tbody tr:hover {
+  background: #fafaf8;
+}
+
 .prose code {
   font-family: var(--font-mono), monospace;
   font-size: 0.875em;
